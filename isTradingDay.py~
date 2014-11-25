@@ -1,6 +1,7 @@
 import datetime
 import sqlite3
 import calendar
+import pdb
 
 calendar.setfirstweekday(calendar.MONDAY)
 
@@ -73,12 +74,21 @@ def doRequestData(BBG, startD, endD):
 
         mDate = list(set(tDate) - set(oDate))
         mDate.sort()
-        print "missing Dates", mDate
+        #print "missing Dates", mDate
 
         if mDate:
                 try: 
                         yahoo = Share(BBG)
-                        rslt =  yahoo.get_historical(mDate[0], mDate[-1])
+                        #a implementer max 1Y historique par requete yahoo
+			print (mDate[-1] - mDate[0]).days // 365, (mDate[-1] - mDate[0]).days % 365
+			#if (mDate[-1] - mDate[0]).days // 365 >= 1: print "toto"
+			#pdb.set_trace()
+			
+			for num in range(0, (mDate[-1] - mDate[0]).days//365):
+				pdb.set_trace()				
+				print num
+		
+			rslt =  yahoo.get_historical(mDate[0], mDate[-1])
 
                         for line in rslt: 
                                 #print line
@@ -144,7 +154,7 @@ class Portfolio:
 		return 0
 	
 
-dt = datetime.date(2014, 10, 01)
+dt = datetime.date(2010, 01, 01)
 end = datetime.date(2014, 11, 30)
 #print vTradingDates(dt, end, 'FR')
 
@@ -154,8 +164,8 @@ if __name__=='__main__':
         #print t.timeit(number=1)
         print t.repeat(3, 5)
         doRequestData('^FCHI', dt, end)
-	print cTurbo(4346, 3750, 3750, 100.0, 0.08)
-	print pTurbo(4346, 4500, 4500, 100.0, 0.08)
+	#print cTurbo(4346, 3750, 3750, 100.0, 0.08)
+	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
 	print Stock("FP FP").spot
 
 #conn = sqlite3.connect('portfolio.db')
