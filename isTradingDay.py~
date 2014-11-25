@@ -73,19 +73,15 @@ def doRequestData(BBG, startD, endD):
 
         mDate = list(set(tDate) - set(oDate))
         mDate.sort()
-        #mDate = tDate - oDate
         print "missing Dates", mDate
-        #print len(mDate)
-        #print BBG, mDate[0], mDate[-1]
 
         if mDate:
                 try: 
                         yahoo = Share(BBG)
-                        
                         rslt =  yahoo.get_historical(mDate[0], mDate[-1])
-                        #print rslt
+
                         for line in rslt: 
-                                print line
+                                #print line
                                 if 'Close' in line: 
                                         #print "Close", line['Close']
                                         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
@@ -98,22 +94,68 @@ def doRequestData(BBG, startD, endD):
                                 if 'Low' in line: 
                                         #print line['Low']
                                         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Low']), 'low'))
+                                if 'Volume' in line: 
+                                        #print line['Volume']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Volume']), 'volume'))
                 except:
                         print "Ops!! Check your Internet Connection or check your BBG!"
         conn.commit()
         conn.close()
 
-dt = datetime.date(2014, 11, 01)
+dt = datetime.date(2014, 10, 01)
 end = datetime.date(2014, 11, 30)
 #print vTradingDates(dt, end, 'FR')
-        
-##doRequestData('^FCHI', dt, end)
+
+def cTurbo(Fwd, strike, barrier, quot, margin):
+	if Fwd > strike:
+		return (Fwd - strike)/quot + margin
+	else: 	return 0
+
+def pTurbo(Fwd, strike, barrier, quot, margin):
+	if strike > Fwd:
+		return (strike - Fwd)/quot + margin
+	else: 	return 0
+
+class Stock(object):
+	"This Class holds historical stock information"	
+	
+	def __init__(self, BBG):
+		self.mnemo = BBG 		
+		conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
+		c = conn.cursor()
+		#try:
+			#c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
+			#self.spot = c.fetchone()[0]
+			#print self.spot
+		print self.mnemo
+		c.execute("SELECT date, spot FROM spots WHERE BBG=? AND flag='close'", self.mnemo)
+
+		self.spots =  c.fetchall()
+		print self.spots
+		#except: self.spot = 0		
+
+class Portfolio:
+	def __init__(self):
+		self.cash = 0
+
+	def acheter():
+		return 0
+
+	def vendre():
+		return 0
+
+	def evaluate():
+		return 0
+	
 if __name__=='__main__':
         from timeit import Timer
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
         #print t.timeit(number=1)
         print t.repeat(3, 5)
         doRequestData('^FCHI', dt, end)
+	print cTurbo(4346, 3750, 3750, 100.0, 0.08)
+	print pTurbo(4346, 4500, 4500, 100.0, 0.08)
+	print Stock("FP FP").spots
 
 #conn = sqlite3.connect('portfolio.db')
 #c = conn.cursor()
