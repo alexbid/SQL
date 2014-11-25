@@ -62,48 +62,6 @@ def doRequestData(BBG, startD, endD):
         from datetime import date
 
         if endD > date.today(): endD = date.today()
-	conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
-	c = conn.cursor()
-
-        lDate = vTradingDates(startD, endD, 'FR')
-        for rows in lDate:
-                print rows
-                c.execute('SELECT COUNT(date) FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?)', (rows , rows, BBG))
-		
-                data = c.fetchone()[0]
-                #for toto in data: print toto
-		if data == 0:
-                        try: 
-                                yahoo = Share(BBG)
-                                #print yahoo.get_open()
-                                #print yahoo.get_trade_datetime()
-                                #print rows
-                                try:
-                                        rslt =  yahoo.get_historical(rows, rows)
-                                        #save le close
-                                        if 'Close' in rslt: 
-                                                print rslt['Close']
-                                                print (BBG, rows, float(rslt['Close']), 'close') 
-                                                try: 
-                                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Close']), 'close'))
-                                                except ValueError:
-                                                        print ValueError
-                                except: print rows
-                                #c.execute('')
-                        except:
-                                print "Ops!! Check your Internet Connection or check your BBG!"
-       
-        conn.commit()
-        conn.close()
-
-        #for row in data: print row
-        #conn.close()			
-
-def doRequestDataEvo(BBG, startD, endD):
-        from yahoo_finance import Share
-        from datetime import date
-
-        if endD > date.today(): endD = date.today()
 
 	conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 	c = conn.cursor()
@@ -115,19 +73,15 @@ def doRequestDataEvo(BBG, startD, endD):
 
         mDate = list(set(tDate) - set(oDate))
         mDate.sort()
-        #mDate = tDate - oDate
         print "missing Dates", mDate
-        #print len(mDate)
-        #print BBG, mDate[0], mDate[-1]
 
-        if mDate <> 0:
+        if mDate:
                 try: 
                         yahoo = Share(BBG)
-                        
                         rslt =  yahoo.get_historical(mDate[0], mDate[-1])
-                        #print rslt
+
                         for line in rslt: 
-                                print line
+                                #print line
                                 if 'Close' in line: 
                                         #print "Close", line['Close']
                                         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
@@ -140,12 +94,15 @@ def doRequestDataEvo(BBG, startD, endD):
                                 if 'Low' in line: 
                                         #print line['Low']
                                         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Low']), 'low'))
+                                if 'Volume' in line: 
+                                        #print line['Volume']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Volume']), 'volume'))
                 except:
                         print "Ops!! Check your Internet Connection or check your BBG!"
         conn.commit()
         conn.close()
 
-dt = datetime.date(2014, 11, 01)
+dt = datetime.date(2014, 10, 01)
 end = datetime.date(2014, 11, 30)
 #print vTradingDates(dt, end, 'FR')
         
@@ -155,7 +112,7 @@ if __name__=='__main__':
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
         #print t.timeit(number=1)
         print t.repeat(3, 5)
-        doRequestDataEvo('^FCHI', dt, end)
+        doRequestData('^FCHI', dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
 #c = conn.cursor()

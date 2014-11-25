@@ -57,62 +57,63 @@ def vTradingDates2(stDate, endDate):
     		stDate += step
 	return result
 
-dt = datetime.date(2014, 11, 01)
-end = datetime.date(2014, 12, 30)
-#print vTradingDates(dt, end, 'FR')
-
-if __name__=='__main__':
-        from timeit import Timer
-        t = Timer(lambda: vTradingDates(dt, end, 'FR'))
-        #print t.timeit(number=1)
-        print t.repeat(3, 5)
-
 def doRequestData(BBG, startD, endD):
         from yahoo_finance import Share
         from datetime import date
 
         if endD > date.today(): endD = date.today()
+
 	conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 	c = conn.cursor()
 
-        lDate = vTradingDates(startD, endD, 'FR')
-        for rows in lDate:
-                print rows
-                c.execute('SELECT COUNT(date) FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?)', (rows , rows, BBG))
-		data = c.fetchone()[0]
-                #for toto in data: print toto
-		if data == 0:
-                        try: 
-                                yahoo = Share(BBG)
-                                #print yahoo.get_open()
-                                #print yahoo.get_trade_datetime()
-                                #print rows
-                                try:
-                                        rslt =  yahoo.get_historical(rows, rows)
-                                        #save le close
-                                        if 'Close' in rslt: 
-                                                print rslt['Close']
-                                                print (BBG, rows, float(rslt['Close']), 'close') 
-                                                try: 
-                                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Close']), 'close'))
-                                                except ValueError:
-                                                        print ValueError
-#                                                c.execute('INSERT INTO spots(BBG, date, spot, flag) VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Close']), 'close') )
+        tDate = vTradingDates(startD, endD, 'FR')
 
-                                except: print rows
-                                #c.execute('')
-                        except:
-                                print "Ops!! Check your Internet Connection or check your BBG!"
+        c.execute('SELECT date FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?)', (startD , endD, BBG))
+        oDate = [i[0] for i in c.fetchall()]
+
+        mDate = list(set(tDate) - set(oDate))
+        mDate.sort()
+        #mDate = tDate - oDate
+        print "missing Dates", mDate
+        #print len(mDate)
+        #print BBG, mDate[0], mDate[-1]
+
+        if mDate:
+                try: 
+                        yahoo = Share(BBG)
+                        
+                        rslt =  yahoo.get_historical(mDate[0], mDate[-1])
+                        #print rslt
+                        for line in rslt: 
+                                print line
+                                if 'Close' in line: 
+                                        #print "Close", line['Close']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
+                                if 'Open' in line: 
+                                        #print line['Open']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Open']), 'open'))
+                                if 'High' in line: 
+                                        #print line['High']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['High']), 'high'))
+                                if 'Low' in line: 
+                                        #print line['Low']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Low']), 'low'))
+                except:
+                        print "Ops!! Check your Internet Connection or check your BBG!"
+        conn.commit()
         conn.close()
-               
 
-        #for row in data: print row
-        #conn.close()			
+dt = datetime.date(2014, 11, 01)
+end = datetime.date(2014, 11, 30)
+#print vTradingDates(dt, end, 'FR')
         
-
-
-
-doRequestData('^FCHI', dt, end)
+##doRequestData('^FCHI', dt, end)
+if __name__=='__main__':
+        from timeit import Timer
+        t = Timer(lambda: vTradingDates(dt, end, 'FR'))
+        #print t.timeit(number=1)
+        print t.repeat(3, 5)
+        doRequestData('^FCHI', dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
 #c = conn.cursor()
@@ -122,5 +123,3 @@ doRequestData('^FCHI', dt, end)
 #c.execute("INSERT INTO deals VALUES ('2006-01-05','BUY','RHAT',100,35.14, 2)")
 #conn.commit()
 #conn.close()
-
-
