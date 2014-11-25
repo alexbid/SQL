@@ -125,19 +125,21 @@ def doRequestDataEvo(BBG, startD, endD):
                         yahoo = Share(BBG)
                         
                         rslt =  yahoo.get_historical(mDate[0], mDate[-1])
-                        print rslt
-                       # if 'Close' in rslt: 
-                       #         print rslt['Close']
-                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rslt[], float(rslt['Close']), 'close'))
-                       # if 'Open' in rslt: 
-                       #         print rslt['Open']
-                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Open']), 'open'))
-                       # if 'High' in rslt: 
-                       #         print rslt['High']
-                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['High']), 'high'))
-                       # if 'Low' in rslt: 
-                       #         print rslt['Low']
-                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Low']), 'low'))
+                        #print rslt
+                        for line in rslt: 
+                                print line
+                                if 'Close' in line: 
+                                        #print "Close", line['Close']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
+                                if 'Open' in line: 
+                                        #print line['Open']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Open']), 'open'))
+                                if 'High' in line: 
+                                        #print line['High']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['High']), 'high'))
+                                if 'Low' in line: 
+                                        #print line['Low']
+                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Low']), 'low'))
                 except:
                         print "Ops!! Check your Internet Connection or check your BBG!"
         conn.commit()
