@@ -1,0 +1,1 @@
+SELECT * FROM spots WHERE BBG<>'FP FP'
