@@ -115,8 +115,9 @@ def doRequestDataEvo(BBG, startD, endD):
 
         mDate = set(tDate) - set(oDate)
         print "missing Dates", mDate
+        print len(mDate)
         
-        if mDate <> 0:
+        if len(mDate) <> 0:
                 try: 
                         yahoo = Share(BBG)
                         rslt =  yahoo.get_historical(mDate[0], mDate[-1])
