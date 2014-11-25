@@ -113,27 +113,31 @@ def doRequestDataEvo(BBG, startD, endD):
         c.execute('SELECT date FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?)', (startD , endD, BBG))
         oDate = [i[0] for i in c.fetchall()]
 
-        mDate = set(tDate) - set(oDate)
+        mDate = list(set(tDate) - set(oDate))
+        mDate.sort()
+        #mDate = tDate - oDate
         print "missing Dates", mDate
-        print len(mDate)
-        
-        if len(mDate) <> 0:
+        #print len(mDate)
+        #print BBG, mDate[0], mDate[-1]
+
+        if mDate <> 0:
                 try: 
                         yahoo = Share(BBG)
+                        
                         rslt =  yahoo.get_historical(mDate[0], mDate[-1])
                         print rslt
-                        if 'Close' in rslt: 
-                                print rslt['Close']
-                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Close']), 'close'))
-                        if 'Open' in rslt: 
-                                print rslt['Open']
-                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Open']), 'open'))
-                        if 'High' in rslt: 
-                                print rslt['High']
-                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['High']), 'high'))
-                        if 'Low' in rslt: 
-                                print rslt['Low']
-                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Low']), 'low'))
+                       # if 'Close' in rslt: 
+                       #         print rslt['Close']
+                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rslt[], float(rslt['Close']), 'close'))
+                       # if 'Open' in rslt: 
+                       #         print rslt['Open']
+                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Open']), 'open'))
+                       # if 'High' in rslt: 
+                       #         print rslt['High']
+                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['High']), 'high'))
+                       # if 'Low' in rslt: 
+                       #         print rslt['Low']
+                       #         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Low']), 'low'))
                 except:
                         print "Ops!! Check your Internet Connection or check your BBG!"
         conn.commit()
