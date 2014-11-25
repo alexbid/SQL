@@ -57,10 +57,6 @@ def vTradingDates2(stDate, endDate):
     		stDate += step
 	return result
 
-dt = datetime.date(2014, 11, 01)
-end = datetime.date(2014, 12, 30)
-#print vTradingDates(dt, end, 'FR')
-
 def doRequestData(BBG, startD, endD):
         from yahoo_finance import Share
         from datetime import date
@@ -102,6 +98,49 @@ def doRequestData(BBG, startD, endD):
 
         #for row in data: print row
         #conn.close()			
+
+def doRequestDataEvo(BBG, startD, endD):
+        from yahoo_finance import Share
+        from datetime import date
+
+        if endD > date.today(): endD = date.today()
+
+	conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
+	c = conn.cursor()
+
+        tDate = vTradingDates(startD, endD, 'FR')
+
+        c.execute('SELECT date FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?)', (startD , endD, BBG))
+        oDate = [i[0] for i in c.fetchall()]
+
+        mDate = set(tDate) - set(oDate)
+        print "missing Dates", mDate
+        
+        if mDate <> 0:
+                try: 
+                        yahoo = Share(BBG)
+                        rslt =  yahoo.get_historical(mDate[0], mDate[-1])
+                        print rslt
+                        if 'Close' in rslt: 
+                                print rslt['Close']
+                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Close']), 'close'))
+                        if 'Open' in rslt: 
+                                print rslt['Open']
+                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Open']), 'open'))
+                        if 'High' in rslt: 
+                                print rslt['High']
+                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['High']), 'high'))
+                        if 'Low' in rslt: 
+                                print rslt['Low']
+                                c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, rows, float(rslt['Low']), 'low'))
+                except:
+                        print "Ops!! Check your Internet Connection or check your BBG!"
+        conn.commit()
+        conn.close()
+
+dt = datetime.date(2014, 11, 01)
+end = datetime.date(2014, 11, 30)
+#print vTradingDates(dt, end, 'FR')
         
 ##doRequestData('^FCHI', dt, end)
 if __name__=='__main__':
@@ -109,7 +148,7 @@ if __name__=='__main__':
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
         #print t.timeit(number=1)
         print t.repeat(3, 5)
-        doRequestData('^FCHI', dt, end)
+        doRequestDataEvo('^FCHI', dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
 #c = conn.cursor()
@@ -119,5 +158,3 @@ if __name__=='__main__':
 #c.execute("INSERT INTO deals VALUES ('2006-01-05','BUY','RHAT',100,35.14, 2)")
 #conn.commit()
 #conn.close()
-
-
