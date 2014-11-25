@@ -102,10 +102,6 @@ def doRequestData(BBG, startD, endD):
         conn.commit()
         conn.close()
 
-dt = datetime.date(2014, 10, 01)
-end = datetime.date(2014, 11, 30)
-#print vTradingDates(dt, end, 'FR')
-
 def cTurbo(Fwd, strike, barrier, quot, margin):
 	if Fwd > strike:
 		return (Fwd - strike)/quot + margin
@@ -123,16 +119,16 @@ class Stock(object):
 		self.mnemo = BBG 		
 		conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 		c = conn.cursor()
-		#try:
-			#c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
-			#self.spot = c.fetchone()[0]
-			#print self.spot
-		print self.mnemo
-		c.execute("SELECT date, spot FROM spots WHERE BBG=? AND flag='close'", self.mnemo)
+		try:
+			c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
+			self.spot = c.fetchone()[0]
+			print self.spot
+		#print self.mnemo
+		#c.execute("SELECT date, spot FROM spots WHERE BBG=? AND flag='close'", self.mnemo)
 
-		self.spots =  c.fetchall()
-		print self.spots
-		#except: self.spot = 0		
+		#self.spots =  c.fetchall()
+		#print self.spots
+		except: self.spot = 0		
 
 class Portfolio:
 	def __init__(self):
@@ -147,6 +143,11 @@ class Portfolio:
 	def evaluate():
 		return 0
 	
+
+dt = datetime.date(2000, 01, 01)
+end = datetime.date(2014, 11, 30)
+#print vTradingDates(dt, end, 'FR')
+
 if __name__=='__main__':
         from timeit import Timer
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
@@ -155,7 +156,7 @@ if __name__=='__main__':
         doRequestData('^FCHI', dt, end)
 	print cTurbo(4346, 3750, 3750, 100.0, 0.08)
 	print pTurbo(4346, 4500, 4500, 100.0, 0.08)
-	print Stock("FP FP").spots
+	print Stock("FP FP").spot
 
 #conn = sqlite3.connect('portfolio.db')
 #c = conn.cursor()
