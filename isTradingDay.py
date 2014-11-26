@@ -58,6 +58,16 @@ def vTradingDates2(stDate, endDate):
     		stDate += step
 	return result
 
+def getDateforYahoo(startD, endD):
+        from datetime import timedelta
+        result = [startD]
+        #print startD, endD, (endD - startD).days//365
+        for num in range(0, (endD - startD).days//365):
+                result.append(result[-1] + timedelta(days=365))
+                #print "num:", num
+        result.append(endD)        
+        return result
+
 def doRequestData(BBG, startD, endD):
         from yahoo_finance import Share
         from datetime import date
@@ -74,21 +84,34 @@ def doRequestData(BBG, startD, endD):
 
         mDate = list(set(tDate) - set(oDate))
         mDate.sort()
-        #print "missing Dates", mDate
+        print "missing Dates", mDate
 
         if mDate:
                 try: 
-                        yahoo = Share(BBG)
+                        #yahoo = Share(BBG)
                         #a implementer max 1Y historique par requete yahoo
-			print (mDate[-1] - mDate[0]).days // 365, (mDate[-1] - mDate[0]).days % 365
+                        #print mDate[-1], mDate[0]
+			#print (mDate[-1] - mDate[0]).days // 365, (mDate[-1] - mDate[0]).days % 365
 			#if (mDate[-1] - mDate[0]).days // 365 >= 1: print "toto"
 			#pdb.set_trace()
 			
-			for num in range(0, (mDate[-1] - mDate[0]).days//365):
-				pdb.set_trace()				
-				print num
+			#for num in range(0, (mDate[-1] - mDate[0]).days//365):
+				#pdb.set_trace()				
+			#	print num
 		
-			rslt =  yahoo.get_historical(mDate[0], mDate[-1])
+                        lDate = getDateforYahoo(mDate[0], mDate[-1])
+                        print "ldate:", lDate
+                        ldate2 = lDate.pop()
+                        print "ldate:", lDate
+                        ldate3 = lDate.pop()
+                        print "ldate:", lDate
+
+                        pdb.set_trace()
+
+                        for element in lDate:
+                                print element
+                                
+                        rslt =  yahoo.get_historical(mDate[0], mDate[-1])
 
                         for line in rslt: 
                                 #print line
@@ -152,12 +175,11 @@ class Portfolio:
 
 	def evaluate():
 		return 0
-	
 
-dt = datetime.date(2010, 01, 01)
+dt = datetime.date(2011, 12, 01)
 end = datetime.date(2014, 11, 30)
 #print vTradingDates(dt, end, 'FR')
-
+	
 if __name__=='__main__':
         from timeit import Timer
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
@@ -166,7 +188,8 @@ if __name__=='__main__':
         doRequestData('^FCHI', dt, end)
 	#print cTurbo(4346, 3750, 3750, 100.0, 0.08)
 	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
-	print Stock("FP FP").spot
+	#print Stock("FP FP").spot
+        #getDateforYahoo(dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
 #c = conn.cursor()
