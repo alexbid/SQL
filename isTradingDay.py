@@ -28,8 +28,8 @@ def isTradingDay(tDate):
 			print('this is a HOLIDAY! ' + tDate.isoformat())
 			conn.close()			
 			return False
+
 #q = datetime.datetime(2005,12,26)
-#print q.today() 
 #print isTradingDay(q)
 
 def vTradingDates(stDate, endDate, cdr):
@@ -64,7 +64,6 @@ def getDateforYahoo(startD, endD):
         #print startD, endD, (endD - startD).days//365
         for num in range(0, (endD - startD).days//365):
                 result.append(result[-1] + timedelta(days=365))
-                #print "num:", num
         result.append(endD)        
         return result
 
@@ -85,36 +84,34 @@ def doRequestData(BBG, startD, endD):
         mDate = list(set(tDate) - set(oDate))
         mDate.sort()
         print "missing Dates", mDate
+        #pdb.set_trace()        
 
         if mDate:
+                mfile = open("missingdates.csv", "w")
+                convert_generator = (str(w)+';FR' for w in mDate)
+                mfile.write('\n'.join(convert_generator))
+                mfile.close()
                 try: 
-                        #yahoo = Share(BBG)
-                        #a implementer max 1Y historique par requete yahoo
-                        #print mDate[-1], mDate[0]
-			#print (mDate[-1] - mDate[0]).days // 365, (mDate[-1] - mDate[0]).days % 365
-			#if (mDate[-1] - mDate[0]).days // 365 >= 1: print "toto"
-			#pdb.set_trace()
+                        try:
+                                yahoo = Share(BBG)
+                        except:
+                                print "yahoo = Share(?) failed...", BBG 
+                        	#pdb.set_trace()				
 			
-			#for num in range(0, (mDate[-1] - mDate[0]).days//365):
-				#pdb.set_trace()				
-			#	print num
-		
                         lDate = getDateforYahoo(mDate[0], mDate[-1])
-                        print "ldate:", lDate
-                        ldate2 = lDate.pop()
-                        print "ldate:", lDate
-                        ldate3 = lDate.pop()
-                        print "ldate:", lDate
-
-                        pdb.set_trace()
-
-                        for element in lDate:
-                                print element
-                                
-                        rslt =  yahoo.get_historical(mDate[0], mDate[-1])
-
+                        print "ldate:", lDate, len(lDate)
+                        
+                        rslt = []
+                        for i in range(0,  len(lDate)-1):
+                                #pdb.set_trace()
+                                print lDate[i], lDate[i+1]
+                                try:
+                                        rslt = rslt + yahoo.get_historical(lDate[i], lDate[i+1])
+                                except:
+                                        print "yahoo request failed:", BBG, lDate[i], lDate[i+1]
+                        
                         for line in rslt: 
-                                #print line
+                                print line
                                 if 'Close' in line: 
                                         #print "Close", line['Close']
                                         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
@@ -131,7 +128,7 @@ def doRequestData(BBG, startD, endD):
                                         #print line['Volume']
                                         c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Volume']), 'volume'))
                 except:
-                        print "Ops!! Check your Internet Connection or check your BBG!"
+                        print "Ops!! your request failed!"
         conn.commit()
         conn.close()
 
@@ -156,12 +153,12 @@ class Stock(object):
 			c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
 			self.spot = c.fetchone()[0]
 			print self.spot
-		#print self.mnemo
-		#c.execute("SELECT date, spot FROM spots WHERE BBG=? AND flag='close'", self.mnemo)
-
-		#self.spots =  c.fetchall()
-		#print self.spots
-		except: self.spot = 0		
+                        #print self.mnemo
+                        #c.execute("SELECT date, spot FROM spots WHERE BBG=? AND flag='close'", self.mnemo)
+                        #self.spots =  c.fetchall()
+                        #print self.spots
+		except: 
+                        self.spot = 0		
 
 class Portfolio:
 	def __init__(self):
@@ -176,9 +173,8 @@ class Portfolio:
 	def evaluate():
 		return 0
 
-dt = datetime.date(2011, 12, 01)
+dt = datetime.date(1990, 03, 01)
 end = datetime.date(2014, 11, 30)
-#print vTradingDates(dt, end, 'FR')
 	
 if __name__=='__main__':
         from timeit import Timer
@@ -186,6 +182,7 @@ if __name__=='__main__':
         #print t.timeit(number=1)
         print t.repeat(3, 5)
         doRequestData('^FCHI', dt, end)
+        #print vTradingDates(dt, end, 'FR')
 	#print cTurbo(4346, 3750, 3750, 100.0, 0.08)
 	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
 	#print Stock("FP FP").spot
