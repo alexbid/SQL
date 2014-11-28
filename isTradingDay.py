@@ -7,7 +7,6 @@ calendar.setfirstweekday(calendar.MONDAY)
 
 def isWeekEnd(tDate):
         if tDate.weekday() == 5 or tDate.weekday() == 6:
-		#print('this is a WEEKEND ' + tDate.isoformat())		
 		return True
 	else:	return False
 
@@ -61,7 +60,6 @@ def vTradingDates2(stDate, endDate):
 def getDateforYahoo(startD, endD):
         from datetime import timedelta
         result = [startD]
-        #print startD, endD, (endD - startD).days//365
         for num in range(0, (endD - startD).days//365):
                 result.append(result[-1] + timedelta(days=365))
         result.append(endD)        
@@ -84,7 +82,6 @@ def doRequestData(BBG, startD, endD):
         mDate = list(set(tDate) - set(oDate))
         mDate.sort()
         print "missing Dates", mDate
-        #pdb.set_trace()        
 
         if mDate:
                 mfile = open("missingdates.csv", "w")
@@ -92,11 +89,8 @@ def doRequestData(BBG, startD, endD):
                 mfile.write('\n'.join(convert_generator))
                 mfile.close()
                 try: 
-                        try:
-                                yahoo = Share(BBG)
-                        except:
-                                print "yahoo = Share(?) failed...", BBG 
-                        	#pdb.set_trace()				
+                        try: yahoo = Share(BBG)
+                        except: print "yahoo = Share(?) failed...", BBG 
 			
                         lDate = getDateforYahoo(mDate[0], mDate[-1])
                         print "ldate:", lDate, len(lDate)
@@ -111,40 +105,25 @@ def doRequestData(BBG, startD, endD):
                                         print "yahoo request failed:", BBG, lDate[i], lDate[i+1]
                         
                         for line in rslt: 
-                                print line
-                                if 'Close' in line: 
-                                        #print "Close", line['Close']
-                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
-                                if 'Open' in line: 
-                                        #print line['Open']
-                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Open']), 'open'))
-                                if 'High' in line: 
-                                        #print line['High']
-                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['High']), 'high'))
-                                if 'Low' in line: 
-                                        #print line['Low']
-                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Low']), 'low'))
-                                if 'Volume' in line: 
-                                        #print line['Volume']
-                                        c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Volume']), 'volume'))
-                except:
-                        print "Ops!! your request failed!"
+                                if 'Close' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
+                                if 'Open' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Open']), 'open'))
+                                if 'High' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['High']), 'high'))
+                                if 'Low' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Low']), 'low'))
+                                if 'Volume' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Volume']), 'volume'))
+                except: print "Ops!! your request failed!"
         conn.commit()
         conn.close()
 
 def cTurbo(Fwd, strike, barrier, quot, margin):
-	if Fwd > strike:
-		return (Fwd - strike)/quot + margin
+	if Fwd > strike: return (Fwd - strike)/quot + margin
 	else: 	return 0
 
 def pTurbo(Fwd, strike, barrier, quot, margin):
-	if strike > Fwd:
-		return (strike - Fwd)/quot + margin
+	if strike > Fwd: return (strike - Fwd)/quot + margin
 	else: 	return 0
 
 class Stock(object):
 	"This Class holds historical stock information"	
-	
 	def __init__(self, BBG):
 		self.mnemo = BBG 		
 		conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
@@ -152,25 +131,33 @@ class Stock(object):
 		try:
 			c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
 			self.spot = c.fetchone()[0]
-			print self.spot
-                        #print self.mnemo
-                        #c.execute("SELECT date, spot FROM spots WHERE BBG=? AND flag='close'", self.mnemo)
-                        #self.spots =  c.fetchall()
-                        #print self.spots
-		except: 
-                        self.spot = 0		
+                        try:
+                                d = conn.cursor()
+                                c.execute("SELECT date, spot FROM spots WHERE BBG='" + self.mnemo + "' AND flag='close'" )
+                                self.spots =  dict(c.fetchall())
+                                #print self.spots[datetime.date(1999, 1, 5)]
+                                #pdb.set_trace()
+                        except: print "error in loading historic prices for " + self.mnemo
+		except: self.spot = 0		
+
+        def getClose(self, dDate):
+                try : return self.spots[dDate]
+                except : return "no close available for this stock at this date: "+ self.mnemo+" as of "+dDate.strftime("%Y-%m-%d")
+
+        def getSpot(self):
+                return self.spot
 
 class Portfolio:
 	def __init__(self):
 		self.cash = 0
 
-	def acheter():
+	def buy():
 		return 0
 
-	def vendre():
+	def sell():
 		return 0
 
-	def evaluate():
+	def gValue():
 		return 0
 
 dt = datetime.date(1990, 03, 01)
@@ -181,11 +168,14 @@ if __name__=='__main__':
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
         #print t.timeit(number=1)
         print t.repeat(3, 5)
-        doRequestData('^FCHI', dt, end)
+        #doRequestData('^FCHI', dt, end)
         #print vTradingDates(dt, end, 'FR')
 	#print cTurbo(4346, 3750, 3750, 100.0, 0.08)
 	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
-	#print Stock("FP FP").spot
+	x = Stock("^FCHI")
+        print x.spot
+        dd = datetime.date(1999, 1, 5)
+        print x.getClose(dd)
         #getDateforYahoo(dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
