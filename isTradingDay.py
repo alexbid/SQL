@@ -124,9 +124,14 @@ def pTurbo(Fwd, strike, barrier, quot, margin):
 
 class Stock(object):
 	"This Class holds historical stock information"	
+        spot = 0.0
+        mnemo = ""
+        flag = "close"
+
 	def __init__(self, BBG):
 		self.mnemo = BBG 		
-		conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
+		print "initializing new Stock... " + BBG
+                conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 		c = conn.cursor()
 		try:
 			c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
@@ -135,10 +140,12 @@ class Stock(object):
                                 d = conn.cursor()
                                 c.execute("SELECT date, spot FROM spots WHERE BBG='" + self.mnemo + "' AND flag='close'" )
                                 self.spots =  dict(c.fetchall())
-                                #print self.spots[datetime.date(1999, 1, 5)]
                                 #pdb.set_trace()
                         except: print "error in loading historic prices for " + self.mnemo
 		except: self.spot = 0		
+
+        def getMnemo(self):
+                return self.mnemo
 
         def getClose(self, dDate):
                 try : return self.spots[dDate]
@@ -148,17 +155,30 @@ class Stock(object):
                 return self.spot
 
 class Portfolio:
+        equity = {}
+        cash = 0.0
+        flag = 'close'
+        
 	def __init__(self):
 		self.cash = 0
 
-	def buy():
-		return 0
+        def mDesposit(self, amount):
+                self.cash += amount
 
-	def sell():
-		return 0
+        def mWithdraw(self, amount):
+                self.cash -= amount
 
-	def gValue():
-		return 0
+        def trade(self, tDate, Stock, qt, price, fee):
+                pdb.set_trace()
+                self.equity[Stock] += qt
+                #self.price[Stock.getMnemo] = Stock.getClose(eDate)
+                self.cash = self.cash - qt*price - fee
+
+	def gValue(self, gValue, flag):
+		stockValue = 0.0
+                for lStock, qty in equity.iteritems():
+                        stockValue += qty * lStock.getClose(gValue)
+                return self.cash + stockValue 
 
 dt = datetime.date(1990, 03, 01)
 end = datetime.date(2014, 11, 30)
@@ -174,8 +194,10 @@ if __name__=='__main__':
 	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
 	x = Stock("^FCHI")
         print x.spot
-        dd = datetime.date(1999, 1, 5)
-        print x.getClose(dd)
+        print x.getClose(datetime.date(1999, 1, 5))
+        portfolio = Portfolio()
+        tDate = datetime.date(1999, 1, 5)
+        portfolio.trade(tDate, x, 2, x.getClose(tDate), 10)
         #getDateforYahoo(dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
