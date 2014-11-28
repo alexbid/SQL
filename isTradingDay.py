@@ -144,6 +144,14 @@ class Stock(object):
                         except: print "error in loading historic prices for " + self.mnemo
 		except: self.spot = 0		
 
+        def __hash__(self):
+                #return hash((self.mnemo, self.location))
+                return hash(self.mnemo)
+
+        def __eq__(self, other):
+                #return (self.mnemo, self.location) == (other.mnemo, other.location)
+                return (self.mnemo) == (other.mnemo)
+
         def getMnemo(self):
                 return self.mnemo
 
@@ -162,22 +170,27 @@ class Portfolio:
 	def __init__(self):
 		self.cash = 0
 
-        def mDesposit(self, amount):
+        def mDeposit(self, amount):
                 self.cash += amount
 
         def mWithdraw(self, amount):
                 self.cash -= amount
 
         def trade(self, tDate, Stock, qt, price, fee):
-                pdb.set_trace()
-                self.equity[Stock] += qt
+#                pdb.set_trace()
+                #print self.equity[Stock] 
+                self.equity[Stock] = qt
                 #self.price[Stock.getMnemo] = Stock.getClose(eDate)
                 self.cash = self.cash - qt*price - fee
-
-	def gValue(self, gValue, flag):
+ #                pdb.set_trace()
+               
+	def getValue(self, gValue, flag):
 		stockValue = 0.0
-                for lStock, qty in equity.iteritems():
+                for lStock, qty in self.equity.iteritems():
+                        #print "qty spot", qty, lStock.getClose(gValue)
                         stockValue += qty * lStock.getClose(gValue)
+                #print "cash:", self.cash
+                #print "stockValue:", stockValue
                 return self.cash + stockValue 
 
 dt = datetime.date(1990, 03, 01)
@@ -197,7 +210,12 @@ if __name__=='__main__':
         print x.getClose(datetime.date(1999, 1, 5))
         portfolio = Portfolio()
         tDate = datetime.date(1999, 1, 5)
-        portfolio.trade(tDate, x, 2, x.getClose(tDate), 10)
+        portfolio.trade(tDate, x, 3, x.getClose(tDate), 10)
+        portfolio.mDeposit(100000)
+        print "value at trade date:", portfolio.getValue(tDate,'close')
+        print "value as of today: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')
+        print "gain: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')-portfolio.getValue(tDate,'close')
+
         #getDateforYahoo(dt, end)
 
 #conn = sqlite3.connect('portfolio.db')
