@@ -128,9 +128,9 @@ class Stock(object):
         mnemo = ""
         flag = "close"
 
-	def __init__(self, BBG):
-		self.mnemo = BBG 		
-		print "initializing new Stock... " + BBG
+	def __init__(self, mnemo):
+		self.mnemo = mnemo 		
+		print "initializing new Stock... " + mnemo
                 conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 		c = conn.cursor()
 		try:
@@ -144,13 +144,20 @@ class Stock(object):
                         except: print "error in loading historic prices for " + self.mnemo
 		except: self.spot = 0		
 
-        def __hash__(self):
-                #return hash((self.mnemo, self.location))
-                return hash(self.mnemo)
-
-        def __eq__(self, other):
-                #return (self.mnemo, self.location) == (other.mnemo, other.location)
-                return (self.mnemo) == (other.mnemo)
+        #def __hash__(self):
+        #        #return hash((self.mnemo, self.location))
+        #        #return hash(self.mnemo)
+	#	return hash(str(self))
+	#def __cmp__(self, other):
+    	#	# similarly the strings are good for comparisons
+	#	return cmp(str(self), str(other))
+	#def __str__(self):
+	#	return self.mnemo
+        #def __eq__(self, other):
+        #        #return (self.mnemo, self.location) == (other.mnemo, other.location)
+        #        return (self.mnemo) == (other.mnemo)
+	#def __ne__(self, other ):
+        #	return self.mnemo != other.mnemo
 
         def getMnemo(self):
                 return self.mnemo
@@ -166,9 +173,23 @@ class Portfolio:
         equity = {}
         cash = 0.0
         flag = 'close'
+        fees = 0.0
         
 	def __init__(self):
 		self.cash = 0
+
+        def load(self, stDate, endDate):
+                conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
+                c = conn.cursor()
+                c.execute('SELECT date, trans, BBG, qty, price, broker FROM trades WHERE (date BETWEEN ? AND ?)',(stDate, endDate))
+                holidays = []
+                for row in c: 
+                        print row[0], row[1], row[2], row[3], row[4], row[5]  
+
+                        if row[1] == "BUY": portfolio.trade(row[0], Stock(row[2]), row[3], row[4], row[5])
+                        if row[1] == "SELL": portfolio.trade(row[0], Stock(row[2]), -row[3], row[4], row[5])
+
+                c.close
 
         def mDeposit(self, amount):
                 self.cash += amount
@@ -178,22 +199,19 @@ class Portfolio:
 
         def trade(self, tDate, Stock, qt, price, fee):
 #                pdb.set_trace()
-                #print self.equity[Stock] 
-                qt2 = self.equity[Stock]
-		print qt2
-		self.equity[Stock] = qt2 + qt
-                #self.price[Stock.getMnemo] = Stock.getClose(eDate)
+		if Stock in self.equity: self.equity[Stock] = self.equity[Stock] + qt
+		else : self.equity[Stock] = qt
                 self.cash = self.cash - qt*price - fee
- #                pdb.set_trace()
+                self.fees += fee
                
 	def getValue(self, gValue, flag):
 		stockValue = 0.0
                 for lStock, qty in self.equity.iteritems():
-                        #print "qty spot", qty, lStock.getClose(gValue)
                         stockValue += qty * lStock.getClose(gValue)
-                #print "cash:", self.cash
-                #print "stockValue:", stockValue
                 return self.cash + stockValue 
+
+        def getFees(self):
+                return self.fees
 
 dt = datetime.date(1990, 03, 01)
 end = datetime.date(2014, 11, 30)
@@ -207,24 +225,18 @@ if __name__=='__main__':
         #print vTradingDates(dt, end, 'FR')
 	#print cTurbo(4346, 3750, 3750, 100.0, 0.08)
 	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
-	x = Stock("^FCHI")
-        print x.spot
-        print x.getClose(datetime.date(1999, 1, 5))
+	#x = Stock("^FCHI")
+        #print x.spot
+        #print x.getClose(datetime.date(1999, 1, 5))
         portfolio = Portfolio()
         tDate = datetime.date(1999, 1, 5)
-        portfolio.trade(tDate, x, 3, x.getClose(tDate), 10)
-        portfolio.mDeposit(100000)
-        print "value at trade date:", portfolio.getValue(tDate,'close')
-        print "value as of today: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')
-        print "gain: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')-portfolio.getValue(tDate,'close')
+        #portfolio.trade(tDate, x, 1, x.getClose(tDate), 10)
+        #portfolio.trade(tDate, x, 1, x.getClose(tDate), 10)
+        portfolio.mDeposit(1000)
+        #print "value at trade date:", portfolio.getValue(tDate,'close')
+        #print "value as of today: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')
+        #print "gain: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')-portfolio.getValue(tDate,'close')
+        portfolio.load( datetime.date(2000, 01, 26), datetime.date(2014, 11, 26))
+        print "portfolio values:", portfolio.getValue(datetime.date(2014, 11, 26),'close')
+        print "total fees:", portfolio.getFees()
 
-        #getDateforYahoo(dt, end)
-
-#conn = sqlite3.connect('portfolio.db')
-#c = conn.cursor()
-# Create table
-#c.execute('''CREATE TABLE deals
-#             (date text, trans text, symbol text, qty real, price real, brok text)''')
-#c.execute("INSERT INTO deals VALUES ('2006-01-05','BUY','RHAT',100,35.14, 2)")
-#conn.commit()
-#conn.close()

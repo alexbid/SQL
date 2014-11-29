@@ -128,9 +128,9 @@ class Stock(object):
         mnemo = ""
         flag = "close"
 
-	def __init__(self, BBG):
-		self.mnemo = BBG 		
-		print "initializing new Stock... " + BBG
+	def __init__(self, mnemo):
+		self.mnemo = mnemo 		
+		print "initializing new Stock... " + mnemo
                 conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 		c = conn.cursor()
 		try:
@@ -144,13 +144,24 @@ class Stock(object):
                         except: print "error in loading historic prices for " + self.mnemo
 		except: self.spot = 0		
 
-        def __hash__(self):
-                #return hash((self.mnemo, self.location))
-                return hash(self.mnemo)
+        #def __hash__(self):
+        #        #return hash((self.mnemo, self.location))
+        #        #return hash(self.mnemo)
+	#	return hash(str(self))
+
+	def __cmp__(self, other):
+    		# similarly the strings are good for comparisons
+		return cmp(str(self), str(other))
+
+	def __str__(self):
+		return self.mnemo
 
         def __eq__(self, other):
                 #return (self.mnemo, self.location) == (other.mnemo, other.location)
                 return (self.mnemo) == (other.mnemo)
+
+	def __ne__(self, other ):
+        	return self.mnemo != other.mnemo
 
         def getMnemo(self):
                 return self.mnemo
@@ -178,21 +189,14 @@ class Portfolio:
 
         def trade(self, tDate, Stock, qt, price, fee):
 #                pdb.set_trace()
-                #print self.equity[Stock] 
-                qt2 = self.equity[Stock]
-		print qt2
-		self.equity[Stock] = qt2 + qt
-                #self.price[Stock.getMnemo] = Stock.getClose(eDate)
+		if Stock in self.equity: self.equity[Stock] = self.equity[Stock] + qt
+		else : self.equity[Stock] = qt
                 self.cash = self.cash - qt*price - fee
- #                pdb.set_trace()
                
 	def getValue(self, gValue, flag):
 		stockValue = 0.0
                 for lStock, qty in self.equity.iteritems():
-                        #print "qty spot", qty, lStock.getClose(gValue)
                         stockValue += qty * lStock.getClose(gValue)
-                #print "cash:", self.cash
-                #print "stockValue:", stockValue
                 return self.cash + stockValue 
 
 dt = datetime.date(1990, 03, 01)
@@ -213,18 +217,8 @@ if __name__=='__main__':
         portfolio = Portfolio()
         tDate = datetime.date(1999, 1, 5)
         portfolio.trade(tDate, x, 3, x.getClose(tDate), 10)
+        portfolio.trade(tDate, x, 3, x.getClose(tDate), 10)
         portfolio.mDeposit(100000)
         print "value at trade date:", portfolio.getValue(tDate,'close')
         print "value as of today: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')
         print "gain: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')-portfolio.getValue(tDate,'close')
-
-        #getDateforYahoo(dt, end)
-
-#conn = sqlite3.connect('portfolio.db')
-#c = conn.cursor()
-# Create table
-#c.execute('''CREATE TABLE deals
-#             (date text, trans text, symbol text, qty real, price real, brok text)''')
-#c.execute("INSERT INTO deals VALUES ('2006-01-05','BUY','RHAT',100,35.14, 2)")
-#conn.commit()
-#conn.close()
