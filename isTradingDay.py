@@ -179,7 +179,9 @@ class Portfolio:
         def trade(self, tDate, Stock, qt, price, fee):
 #                pdb.set_trace()
                 #print self.equity[Stock] 
-                self.equity[Stock] = qt
+                qt2 = self.equity[Stock]
+		print qt2
+		self.equity[Stock] = qt2 + qt
                 #self.price[Stock.getMnemo] = Stock.getClose(eDate)
                 self.cash = self.cash - qt*price - fee
  #                pdb.set_trace()
