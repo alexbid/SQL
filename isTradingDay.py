@@ -6,8 +6,7 @@ import pdb
 calendar.setfirstweekday(calendar.MONDAY)
 
 def isWeekEnd(tDate):
-        if tDate.weekday() == 5 or tDate.weekday() == 6:
-		return True
+        if tDate.weekday() == 5 or tDate.weekday() == 6: return True
 	else:	return False
 
 def isTradingDay(tDate):
@@ -97,13 +96,10 @@ def doRequestData(BBG, startD, endD):
                         
                         rslt = []
                         for i in range(0,  len(lDate)-1):
-                                #pdb.set_trace()
                                 print lDate[i], lDate[i+1]
-                                try:
-                                        rslt = rslt + yahoo.get_historical(lDate[i], lDate[i+1])
-                                except:
-                                        print "yahoo request failed:", BBG, lDate[i], lDate[i+1]
-                        
+                                try: rslt = rslt + yahoo.get_historical(lDate[i], lDate[i+1])
+                                except: print "yahoo request failed:", BBG, lDate[i], lDate[i+1]
+                       
                         for line in rslt: 
                                 if 'Close' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Close']), 'close'))
                                 if 'Open' in line: c.execute('INSERT INTO spots VALUES(?, ?, ?, ?)', (BBG, line['Date'], float(line['Open']), 'open'))
@@ -123,51 +119,42 @@ def pTurbo(Fwd, strike, barrier, quot, margin):
 	else: 	return 0
 
 class Stock(object):
-	"This Class holds historical stock information"	
         spot = 0.0
         mnemo = ""
         flag = "close"
-
-	def __init__(self, mnemo):
-		self.mnemo = mnemo 		
-		print "initializing new Stock... " + mnemo
-                conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
-		c = conn.cursor()
-		try:
-			c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
-			self.spot = c.fetchone()[0]
+        loaded = False
+        
+	def __init__(self, mnemo): self.mnemo = mnemo
+                
+        def load(self):
+                if self.loaded == False:
+                        print "initializing new Stock... " + self.mnemo
+                        conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
+                        c = conn.cursor()
                         try:
-                                d = conn.cursor()
-                                c.execute("SELECT date, spot FROM spots WHERE BBG='" + self.mnemo + "' AND flag='close'" )
-                                self.spots =  dict(c.fetchall())
-                                #pdb.set_trace()
-                        except: print "error in loading historic prices for " + self.mnemo
-		except: self.spot = 0		
+                                c.execute("SELECT spot FROM spots WHERE BBG=? AND flag='close' AND date = (SELECT MAX(date) FROM spots WHERE BBG=? AND flag='close')", (self.mnemo, self.mnemo) )
+                                self.spot = c.fetchone()[0]
+                                try:
+                                        d = conn.cursor()
+                                        c.execute("SELECT date, spot FROM spots WHERE BBG='" + self.mnemo + "' AND flag='close'" )
+                                        self.spots =  dict(c.fetchall())
+                                except: print "error in loading historic prices for " + self.mnemo
+                        except: self.spot = 0
+                        self.loaded = True
 
-        #def __hash__(self):
-        #        #return hash((self.mnemo, self.location))
-        #        #return hash(self.mnemo)
-	#	return hash(str(self))
-	#def __cmp__(self, other):
-    	#	# similarly the strings are good for comparisons
-	#	return cmp(str(self), str(other))
-	#def __str__(self):
-	#	return self.mnemo
+        def __hash__(self): return hash(str(self))
+	def __cmp__(self, other): return cmp(str(self), str(other))
+	def __str__(self): return self.mnemo
         #def __eq__(self, other):
         #        #return (self.mnemo, self.location) == (other.mnemo, other.location)
         #        return (self.mnemo) == (other.mnemo)
 	#def __ne__(self, other ):
         #	return self.mnemo != other.mnemo
-
-        def getMnemo(self):
-                return self.mnemo
-
+        def getMnemo(self): return self.mnemo
         def getClose(self, dDate):
                 try : return self.spots[dDate]
                 except : return "no close available for this stock at this date: "+ self.mnemo+" as of "+dDate.strftime("%Y-%m-%d")
-
-        def getSpot(self):
-                return self.spot
+        def getSpot(self): return self.spot
 
 class Portfolio:
         equity = {}
@@ -175,8 +162,7 @@ class Portfolio:
         flag = 'close'
         fees = 0.0
         
-	def __init__(self):
-		self.cash = 0
+	def __init__(self): self.cash = 0
 
         def load(self, stDate, endDate):
                 conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
@@ -184,34 +170,31 @@ class Portfolio:
                 c.execute('SELECT date, trans, BBG, qty, price, broker FROM trades WHERE (date BETWEEN ? AND ?)',(stDate, endDate))
                 holidays = []
                 for row in c: 
-                        print row[0], row[1], row[2], row[3], row[4], row[5]  
-
+                        print row[0], row[1], row[2], row[3], row[4], row[5] 
                         if row[1] == "BUY": portfolio.trade(row[0], Stock(row[2]), row[3], row[4], row[5])
-                        if row[1] == "SELL": portfolio.trade(row[0], Stock(row[2]), -row[3], row[4], row[5])
+                        elif row[1] == "SELL": portfolio.trade(row[0], Stock(row[2]), -row[3], row[4], row[5])
+                        else: print "error in transaction side: ", row[1]
 
+                toto = 0
+                for lStock, qty in self.equity.iteritems():
+                        lStock.load()
+                        toto += 1
+                print "toto:", toto
                 c.close
 
-        def mDeposit(self, amount):
-                self.cash += amount
-
-        def mWithdraw(self, amount):
-                self.cash -= amount
-
+        def mDeposit(self, amount): self.cash += amount
+        def mWithdraw(self, amount): self.cash -= amount
+        def getFees(self): return self.fees
         def trade(self, tDate, Stock, qt, price, fee):
-#                pdb.set_trace()
 		if Stock in self.equity: self.equity[Stock] = self.equity[Stock] + qt
 		else : self.equity[Stock] = qt
                 self.cash = self.cash - qt*price - fee
                 self.fees += fee
-               
 	def getValue(self, gValue, flag):
 		stockValue = 0.0
                 for lStock, qty in self.equity.iteritems():
                         stockValue += qty * lStock.getClose(gValue)
                 return self.cash + stockValue 
-
-        def getFees(self):
-                return self.fees
 
 dt = datetime.date(1990, 03, 01)
 end = datetime.date(2014, 11, 30)
@@ -232,11 +215,15 @@ if __name__=='__main__':
         tDate = datetime.date(1999, 1, 5)
         #portfolio.trade(tDate, x, 1, x.getClose(tDate), 10)
         #portfolio.trade(tDate, x, 1, x.getClose(tDate), 10)
-        portfolio.mDeposit(1000)
+        portfolio.mDeposit(10000)
         #print "value at trade date:", portfolio.getValue(tDate,'close')
         #print "value as of today: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')
         #print "gain: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')-portfolio.getValue(tDate,'close')
-        portfolio.load( datetime.date(2000, 01, 26), datetime.date(2014, 11, 26))
-        print "portfolio values:", portfolio.getValue(datetime.date(2014, 11, 26),'close')
+        
+        evalDate = datetime.date(2006, 1, 4)
+        portfolio.load(datetime.date(2000, 01, 26), evalDate)
         print "total fees:", portfolio.getFees()
+        print "portfolio values:", portfolio.getValue(evalDate,'close')
+
+        
 
