@@ -47,15 +47,6 @@ def vTradingDates(stDate, endDate, cdr):
         conn.close()
 	return result
 
-def vTradingDates2(stDate, endDate):
-	step = datetime.timedelta(days=1)
-	result = []
-	while stDate < endDate:
-                if isTradingDay(stDate):
-                        result.append(stDate.strftime('%Y-%m-%d %H:%M:%S'))
-    		stDate += step
-	return result
-
 def getDateforYahoo(startD, endD):
         from datetime import timedelta
         result = [startD]
@@ -67,15 +58,14 @@ def getDateforYahoo(startD, endD):
 def doRequestData(BBG, startD, endD):
         from yahoo_finance import Share
         from datetime import date
+        flag = 'close'
 
         if endD > date.today(): endD = date.today()
 
 	conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
 	c = conn.cursor()
-
         tDate = vTradingDates(startD, endD, 'FR')
-
-        c.execute('SELECT date FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?)', (startD , endD, BBG))
+        c.execute('SELECT date FROM spots WHERE (date BETWEEN ? AND ?) AND (BBG=?) AND (flag=?)', (startD , endD, BBG, flag))
         oDate = [i[0] for i in c.fetchall()]
 
         mDate = list(set(tDate) - set(oDate))
@@ -89,7 +79,7 @@ def doRequestData(BBG, startD, endD):
                 mfile.close()
                 try: 
                         try: yahoo = Share(BBG)
-                        except: print "yahoo = Share(?) failed...", BBG 
+                        except: print "yahoo = Share(?) failed... check your BBG or Internet Connection", BBG 
 			
                         lDate = getDateforYahoo(mDate[0], mDate[-1])
                         print "ldate:", lDate, len(lDate)
@@ -142,6 +132,14 @@ class Stock(object):
                         except: self.spot = 0
                         self.loaded = True
 
+        def saveQuote(self, dDate, quote):
+                conn = sqlite3.connect('portfolio.db', detect_types=sqlite3.PARSE_DECLTYPES)
+                c = conn.cursor()
+                try: 
+                        c.execute("INSERT INTO spot(BBG, date, spot, flag) VALUES(?,?,?,?)",(self.mnemo, dDate, quote, self.flag))
+                        c.commit()
+                except: print "error in saving historic prices for " + self.mnemo
+
         def __hash__(self): return hash(str(self))
 	def __cmp__(self, other): return cmp(str(self), str(other))
 	def __str__(self): return self.mnemo
@@ -153,8 +151,10 @@ class Stock(object):
         def getMnemo(self): return self.mnemo
         def getClose(self, dDate):
                 try : return self.spots[dDate]
-                except : return "no close available for this stock at this date: "+ self.mnemo+" as of "+dDate.strftime("%Y-%m-%d")
+                except : print "no close available for this stock at this date: "+ self.mnemo+" as of "+dDate.strftime("%Y-%m-%d")
+                return 0
         def getSpot(self): return self.spot
+        def setSpot(self, spot): self.spot = spot
 
 class Portfolio:
         equity = {}
@@ -197,14 +197,14 @@ class Portfolio:
                 return self.cash + stockValue 
 
 dt = datetime.date(1990, 03, 01)
-end = datetime.date(2014, 11, 30)
+end = datetime.date(2014, 12, 30)
 	
 if __name__=='__main__':
         from timeit import Timer
         t = Timer(lambda: vTradingDates(dt, end, 'FR'))
         #print t.timeit(number=1)
         print t.repeat(3, 5)
-        #doRequestData('^FCHI', dt, end)
+        doRequestData('^FCHI', dt, end)
         #print vTradingDates(dt, end, 'FR')
 	#print cTurbo(4346, 3750, 3750, 100.0, 0.08)
 	#print pTurbo(4346, 4500, 4500, 100.0, 0.08)
@@ -220,10 +220,9 @@ if __name__=='__main__':
         #print "value as of today: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')
         #print "gain: ", portfolio.getValue(datetime.date(2014, 11, 26),'close')-portfolio.getValue(tDate,'close')
         
-        evalDate = datetime.date(2006, 1, 4)
+        evalDate = datetime.date(2006, 1, 6)
         portfolio.load(datetime.date(2000, 01, 26), evalDate)
-        print "total fees:", portfolio.getFees()
         print "portfolio values:", portfolio.getValue(evalDate,'close')
-
+        print "total fees:", portfolio.getFees()
         
 
