@@ -1,1 +1,1 @@
-web: gunicorn sql.wsgi --log-file -
+web: python isTradingDay.py --log-file -
