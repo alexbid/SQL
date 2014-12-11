@@ -2,7 +2,7 @@ import datetime
 import sqlite3
 import calendar
 import pdb
-import yahoo_finance
+from yahoo_finance import Share
 
 calendar.setfirstweekday(calendar.MONDAY)
 
