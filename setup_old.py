@@ -4,8 +4,29 @@ import calendar
 import pdb
 #from yahoo_finance import Share
 
+name = 'isTradingDay'
+version = '1.2.0'
+#packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
+#A description of the project
+description='A first Python project',
+#long_description=long_description,
 
+# The project's main homepage
+url='https://github.com/alexid/sql'
+license='MIT',
+
+install_requires = ['yahoo_finance']
+
+package_data={
+	'sample': ['package_data.dat'],
+}
+
+entry_points={
+	'console_scripts': [
+		'sample=sample:main',
+	],
+},
 
 calendar.setfirstweekday(calendar.MONDAY)
 
