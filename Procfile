@@ -1,1 +1,1 @@
-web: python isTradingDay.py --log-file -
+web: python setup.py --log-file -
